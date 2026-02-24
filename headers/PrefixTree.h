@@ -16,7 +16,7 @@ namespace PrefixTree {
     template<typename T>
     concept NodeType = std::derived_from<T, NodeBase>;
 
-    // Вариант 1: Классический массив
+    // Вариант 1: Классический массив (только строчные латинские буквы)
     template<typename V>
     struct ArrayNode : NodeBase {
         static constexpr size_t ALPHABET_SIZE = 26;
@@ -33,7 +33,7 @@ namespace PrefixTree {
         }
     };
 
-    // Вариант 2: Хеш-таблица (для больших алфавитов)
+    // Вариант 2: Хеш-таблица
     template<typename V>
     struct HashMapNode : NodeBase {
         std::unordered_map<char, std::unique_ptr<HashMapNode>> children;
@@ -75,33 +75,89 @@ namespace PrefixTree {
 
     // Основной класс Trie
     template<typename Key, typename Value, NodeType NodeT>
-        requires std::convertible_to<Key, std::string_view>
+        requires std::convertible_to<Key, std::string_view>    
     class Trie {
+    public:
+        // Вставка с perfect forwarding для ключа и значения
+        template<typename K, typename V>
+        void insert(K&& key, V&& value) {
+            traverse_or_create(std::forward<K>(key), [&](NodeT* node) {
+                node->value = std::forward<V>(value);
+                node->has_value = true;
+                });
+        }
+
+        // Поиск с perfect forwarding для ключа
+        template<typename K>
+        std::optional<Value> search(K&& key) const {
+            return traverse(std::forward<K>(key), [](const NodeT* node) -> std::optional<Value> {
+                if (node && node->has_value) {
+                    return node->value;  // Возвращаем копию значения
+                }
+                return std::nullopt;
+                });
+        }
+
+        // Поиск с возможностью получить значение по ссылке (для больших объектов)
+        template<typename K>
+        const Value* find(K&& key) const {
+            return traverse(std::forward<K>(key), [](const NodeT* node) -> const Value* {
+                return (node && node->has_value) ? &node->value : nullptr;
+                });
+        }
+
+        // Поиск с возможностью получить значение по ссылке (для больших объектов)
+        template<typename K>
+        Value* find(K&& key) {
+            return traverse(std::forward<K>(key), [](const NodeT* node) -> Value* {
+                return (node && node->has_value) ? &node->value : nullptr;
+                });
+        }
+
+        // Проверка наличия ключа
+        template<typename K>
+        bool contains(K&& key) const {
+            return traverse(std::forward<K>(key), [](const NodeT* node) {
+                return node && node->has_value;
+                });
+        }
+
+        // Проверка префикса
+        template<typename K>
+        bool startsWith(K&& prefix) const {
+            return traverse(std::forward<K>(prefix), [](const NodeT* node) {
+                return node != nullptr;  // Просто проверяем, что путь существует
+                });
+        }
+
     private:
-        struct RootHolder {
-            std::unique_ptr<NodeT> root;
-            RootHolder() : root(std::make_unique<NodeT>()) {}
-        };
-
-        RootHolder root_holder;
-
-        // Вспомогательная функция для обхода
-        template<typename F>
-        bool traverse(const Key& key, F&& func) const {
+        // const traverse - только чтение
+        template<typename K, typename F>
+        decltype(auto) traverse(K&& key, F&& func) const {
             NodeT* current = root_holder.root.get();
-            for (char c : key) {
+            for (auto c : std::string_view(std::forward<K>(key))) {  // Преобразуем в последовательность char
                 current = current->getChild(c);
-                if (!current) return false;
+                if (!current) return std::forward<F>(func)(nullptr);
             }
             return std::forward<F>(func)(current);
         }
 
-    public:
-        Trie() = default;
-
-        void insert(const Key& key, const Value& val) {
+        // non-const traverse - для модификации
+        template<typename K, typename F>
+        decltype(auto) traverse(K&& key, F&& func) {
             NodeT* current = root_holder.root.get();
-            for (char c : key) {
+            for (auto c : std::string_view(std::forward<K>(key))) {
+                current = current->getChild(c);
+                if (!current) return std::forward<F>(func)(nullptr);
+            }
+            return std::forward<F>(func)(current);
+        }
+
+        // traverse_or_create - создает путь при необходимости
+        template<typename K, typename F>
+        decltype(auto) traverse_or_create(K&& key, F&& func) {
+            NodeT* current = root_holder.root.get();
+            for (auto c : std::string_view(std::forward<K>(key))) {
                 NodeT* next = current->getChild(c);
                 if (!next) {
                     auto new_node = std::make_unique<NodeT>();
@@ -110,45 +166,19 @@ namespace PrefixTree {
                 }
                 current = next;
             }
-            current->has_value = true;
-            current->value = val;
+            return std::forward<F>(func)(current);
         }
-
-        std::optional<Value> search(const Key& key) const {
-            std::optional<Value> result;
-            traverse(key, [&](NodeT* node) {
-                if (node->has_value) {
-                    result = node->value;
-                }
-                return true;
-                });
-            return result;
-        }
-
-        bool startsWith(const Key& prefix) const {
-            return traverse(prefix, [](NodeT*) { return true; });
-        }
-
-        // Статистика для отчета
-        struct Stats {
-            size_t node_count;
-            size_t total_children_capacity;
-            size_t used_children;
-            double memory_estimate_mb;
+    private:
+        struct RootHolder {
+            std::unique_ptr<NodeT> root;
+            RootHolder() : root(std::make_unique<NodeT>()) {}
         };
 
-        Stats getStats() const {
-            Stats stats{ 0, 0, 0, 0.0 };
-            traverseAll(root_holder.root.get(), [&](NodeT* node) {
-                stats.node_count++;
-                // Подсчет детей зависит от типа узла
-                // Можно добавить виртуальные функции или type traits
-                });
-            return stats;
-        }
+        RootHolder root_holder;
+
     };
 
-    // Удобные алиасы для пользователей
+    //Aлиасы для разных вариантов типа узла с ключом типа string
     template<typename V>
     using ArrayTrie = Trie<std::string, V, ArrayNode<V>>;
 
