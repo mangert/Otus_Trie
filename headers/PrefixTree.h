@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <concepts>
 #include <optional>
+#include <functional>
 
 
 namespace PrefixTree {    
@@ -191,9 +192,20 @@ namespace PrefixTree {
     };
 
     //-------------Основной класс Trie -------------------//    
-
+    /**
+    * @tparam Value Type of values stored in trie.
+    *
+    * Note: Value type must be default constructible because each node
+    * contains a Value member even if it doesn't store a value.
+    *
+    * To store non-default-constructible types, use std::optional<Value>.
+    *
+    * Example:
+    * Trie<std::optional<MyType>> trie;
+    */
     template<typename Key, typename Value, NodeType NodeT>
-        requires std::convertible_to<Key, std::string_view>    
+        requires std::convertible_to<Key, std::string_view>
+    && std::is_default_constructible_v<Value>
     class Trie {
     public:
         //=========== Конструкторы ===============//
@@ -215,7 +227,7 @@ namespace PrefixTree {
 
         //=========== Основные операции ===============//
         
-        // Вставка с perfect forwarding для ключа и значения
+        // Вставка элемента
         template<typename K, typename V>
         void insert(K&& key, V&& value) {
             traverse_or_create(std::forward<K>(key), [&](NodeT* node) {
@@ -224,52 +236,64 @@ namespace PrefixTree {
                 });
         }
 
-        //удваление
+        //удаление ключа
+         // Базовая версия - просто помечает как удаленное
         template<typename K>
         bool remove(K&& key) {
-            return traverse(std::forward<K>(key), [](const NodeT* node) -> bool {
+            return remove(std::forward<K>(key), [](Value&) {});
+        }
+
+        // Версия с кастомным очистителем
+        template<typename K, typename Cleaner>
+        bool remove(K&& key, Cleaner&& cleaner) {
+            return traverse(std::forward<K>(key), [&](NodeT* node) -> bool {
                 if (node && node->has_value) {
                     node->has_value = false;
-                    ValueCleaner<Value>::clear(node->value);
+
+                    std::forward<Cleaner>(cleaner)(node->value);
+
                     return true;
                 }
                 return false;
                 });
         }
 
-        //=========== Операции поиска и доступа ===============//
-        // Поиск с perfect forwarding для ключа
+        //=========== Операции поиска и доступа ===============//       
+        // Проверка наличия ключа
         template<typename K>
+        bool contains(K&& key) const {
+            return traverse(std::forward<K>(key), [](const NodeT* node) {
+                return node && node->has_value;
+                });
+        }
+        // Поиск с возвратом по указателю (константная версия)
+        template<typename K>
+        const Value* find(K&& key) const {            
+            return traverse(std::forward<K>(key), [](const NodeT* node) -> const Value* {                
+                return (node && node->has_value) ? &node->value : nullptr;
+                });
+        }
+        // Поиск с возвратом по указателю
+        template<typename K>
+        Value* find(K&& key) {
+            return traverse(std::forward<K>(key), [](NodeT* node) -> Value* {
+                return (node && node->has_value) ? &node->value : nullptr;
+                });
+        }
+        
+        // Поиск с возвратом значения (только для копируемых типов)
+        /**
+         * @note The search(Key) method requires Value to be copy constructible.
+         * For non-copyable types (like std::unique_ptr), clone is not available.
+         */
+        template<typename K>
+            requires std::is_copy_constructible_v<Value>
         std::optional<Value> search(K&& key) const {
             return traverse(std::forward<K>(key), [](const NodeT* node) -> std::optional<Value> {
                 if (node && node->has_value) {
                     return node->value;  // Возвращаем копию значения
                 }
                 return std::nullopt;
-                });
-        }
-
-        // Поиск с возможностью получить значение по ссылке (для больших объектов)
-        template<typename K>
-        const Value* find(K&& key) const {
-            return traverse(std::forward<K>(key), [](const NodeT* node) -> const Value* {
-                return (node && node->has_value) ? &node->value : nullptr;
-                });
-        }
-
-        // Поиск с возможностью получить значение по ссылке (для больших объектов)
-        template<typename K>
-        Value* find(K&& key) {
-            return traverse(std::forward<K>(key), [](const NodeT* node) -> Value* {
-                return (node && node->has_value) ? &node->value : nullptr;
-                });
-        }
-
-        // Проверка наличия ключа
-        template<typename K>
-        bool contains(K&& key) const {
-            return traverse(std::forward<K>(key), [](const NodeT* node) {
-                return node && node->has_value;
                 });
         }
 
@@ -300,51 +324,21 @@ namespace PrefixTree {
                     });               
             }
         }                
-        //клонирование дерева (вместо конструктора копирования, может кинуть исключение)
-        Trie clone() const {
+        //клонирование дерева
+        /**
+         * @note The clone() method requires Value to be copy constructible.
+         * For non-copyable types (like std::unique_ptr), clone is not available.
+         */
+        Trie clone() const 
+            requires std::is_copy_constructible_v<Value> {
             Trie result;
             if (root_holder.root) {
                 result.root_holder.root = cloneNode(root_holder.root.get());
             }
             return result;
-        }
+        }   
     
 private:
-        //=========== Удалители значения для узлов ===============//
-        template<typename T>
-        struct ValueCleaner {
-            // Общий случай - вызываем деструктор через присваивание
-            static void clear(T& value) {
-                value = T{};  // Требует default constructible
-            }
-        };
-
-        // Специализация для указателей
-        template<typename U>
-        struct ValueCleaner<U*> {
-            static void clear(U*& ptr) {
-                ptr = nullptr;  // Указатели зануляем
-            }
-        };
-
-        // Специализация для арифметических типов
-        template<typename T>
-        struct ValueCleaner<T, std::enable_if_t<std::is_arithmetic_v<T>>> {
-            static void clear(T&) {
-                // Ничего не делаем - число можно оставить
-                // Оно всё равно занимает те же 4/8 байт
-            }
-        };
-
-        // Специализация для типов с дешевым default constructor'ом
-        template<typename T>
-        struct ValueCleaner<T, std::enable_if_t<is_cheap_to_default_construct_v<T>>> {
-            static void clear(T& value) {
-                value = T{};  // Например, пустая строка
-            }
-        };
-
-    private:
         //=========== Вспомогательные методы ===============//
         // const traverse - только чтение
         template<typename K, typename F>
