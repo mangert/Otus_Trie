@@ -7,8 +7,6 @@
 #include <unordered_map>
 #include <concepts>
 #include <optional>
-#include <functional>
-
 
 namespace PrefixTree {    
     
@@ -63,7 +61,7 @@ namespace PrefixTree {
             for (size_t i = 0; i < children.size(); ++i) {
                 if (children[i]) {
                     char c = 'a' + static_cast<char>(i);
-                    std::forward<F>(func)(c, children[i]);
+                    std::forward<F>(func)(c, children[i].get());
                 }
             }
         }
@@ -106,7 +104,7 @@ namespace PrefixTree {
         template<typename F>
         void forEachChild(F&& func) {
             for (auto& [c, child_ptr] : children) {
-                std::forward<F>(func)(c, child_ptr);
+                std::forward<F>(func)(c, child_ptr.get());
             }
         }
         // Версия для перемещения unique_ptr (для clear)
@@ -168,11 +166,11 @@ namespace PrefixTree {
             for (size_t i = 0; i < fast_children.size(); ++i) {
                 if (fast_children[i]) {
                     char c = 'a' + static_cast<char>(i);
-                    std::forward<F>(func)(c, fast_children[i]);
+                    std::forward<F>(func)(c, fast_children[i].get());
                 }
             }
             for (auto& [c, child_ptr] : slow_children) {
-                std::forward<F>(func)(c, child_ptr);
+                std::forward<F>(func)(c, child_ptr.get());
             }
         }
         // Версия для перемещения unique_ptr (для clear)
@@ -225,8 +223,7 @@ namespace PrefixTree {
             clear();
         }
 
-        //=========== Основные операции ===============//
-        
+        //=========== Основные операции ===============//        
         // Вставка элемента
         template<typename K, typename V>
         void insert(K&& key, V&& value) {
@@ -279,7 +276,7 @@ namespace PrefixTree {
             return traverse(std::forward<K>(key), [](NodeT* node) -> Value* {
                 return (node && node->has_value) ? &node->value : nullptr;
                 });
-        }
+        }       
         
         // Поиск с возвратом значения (только для копируемых типов)
         /**
@@ -307,7 +304,11 @@ namespace PrefixTree {
         //=========== Другие методы ===============//
         //полная очистка дерева
         void clear() noexcept {
-            if (!root_holder.root) return;
+            
+            if (!root_holder.root) {
+                root_holder.root = std::make_unique<NodeT>();  // на всякий случай
+                return;
+            }            
 
             std::stack<std::unique_ptr<NodeT>> stack;
             stack.push(std::move(root_holder.root));
@@ -323,7 +324,14 @@ namespace PrefixTree {
                     }
                     });               
             }
-        }                
+            // 2. Создаем новый пустой корень
+            root_holder.root = std::make_unique<NodeT>();
+        }
+        //Очистка "мертвых" узлов
+        void cleanup() {            
+            cleanup_impl(root_holder.root.get());
+        }
+        
         //клонирование дерева
         /**
          * @note The clone() method requires Value to be copy constructible.
@@ -376,9 +384,32 @@ private:
                 current = next;
             }
             return std::forward<F>(func)(current);
-        }        
+        }
+        //рекурсивная функция для очистки мертвых узлов
+        bool cleanup_impl(NodeT* node, size_t depth = 0) {
+            if (!node) return true;
+
+            if (depth > MAX_DEPTH) {
+                throw std::runtime_error("Trie too deep for clean up");
+            }
+
+            //сначала проходим по всем узлам
+            node->forEachChild([&](char c, NodeT* child) {
+                if (cleanup_impl(child, depth + 1)) {
+                    node->setChild(c, nullptr);
+                }
+                });
+            //считаем оставшихся детей
+            size_t count_children = 0;
+            node->forEachChild([&](char c, NodeT* child) {
+                if (child) ++count_children;
+                });
+
+            return !node->has_value && !count_children;
+        }
+        
         //клонирование узлов
-        std::unique_ptr<NodeT> cloneNode(const NodeT* node, size_t depth = 0) {
+        std::unique_ptr<NodeT> cloneNode(const NodeT* node, size_t depth = 0) const {
             if (!node) return nullptr;
 
             if (depth > MAX_DEPTH) {
@@ -387,13 +418,17 @@ private:
 
             auto new_node = std::make_unique<NodeT>();
             new_node->has_value = node->has_value;
-            new_node->value = node->value;  // Копируем значение
 
-            // Используем forEachChild для копирования детей
-            node->forEachChild([&new_node](char c, const NodeT* child) {
+            // Копируем значение, если оно есть
+            if (node->has_value) {
+                new_node->value = node->value;  // Копируем значение
+            }
+
+            // Копируем детей - теперь func принимает (char, const NodeT*)
+            node->forEachChild([&](char c, const NodeT* child) {
                 auto cloned_child = cloneNode(child, depth + 1);
                 if (cloned_child) {
-                    new_node->setChild(c, std::move(cloned_child));
+                    new_node->setChild(c, std::move(cloned_child));  // вставляем по букве
                 }
                 });
 

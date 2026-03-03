@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Trie.cpp"
 #include "PrefixTree.h"
+#include "PrefixTest.h"
 #include <string>
 #include <memory>
 
@@ -21,7 +22,7 @@ int main() {
 	trie.insert("app");
 	std::cout << trie.search("app") << std::endl;*/
 	using namespace PrefixTree;
-	ArrayTrie<int> trie;
+	/*ArrayTrie<int> trie;
 	trie.insert("dog", 10);
 	std::cout << trie.search("dog").value() << std::endl;
 	if(!trie.search("cat").has_value())
@@ -31,6 +32,9 @@ int main() {
 	trie.remove("wolf");
 	if (!trie.search("wolf").has_value())
 		std::cout << "not found" << std::endl;
+
+	auto cloned = trie.clone();
+	trie.cleanup();
 	//auto trie_clone = trie.clone();
 	//std::cout << trie_clone.search("dog").value() << std::endl;
 
@@ -41,7 +45,7 @@ int main() {
 		p.reset();
 		});
 	unique_trie.insert("elf", std::make_unique<std::string>("elf"));
-	auto x = unique_trie.search("elf");
+	//auto x = unique_trie.search("elf");
 	//auto const y = unique_trie.find("elf");
 	
 	//auto clone = unique_trie.clone();
@@ -63,6 +67,13 @@ int main() {
 	//Bad badVal(true);
 	//bad_trie.insert("rabbit", badVal);
 	//std::cout << str_trie.search("rabbit").value() << std::endl;
+	*/
+	
+	PrefixTest::comprehensive_test<ArrayNode>("Testing ArrayNode");
+	std::cout << "-------------------------------------------------\n";
+	PrefixTest::comprehensive_test<HashMapNode>("Testing HashMapNode");
+	std::cout << "-------------------------------------------------\n";
+	PrefixTest::comprehensive_test<HybridNode>("Testing HybridNode");
 
 
 	return 0;
