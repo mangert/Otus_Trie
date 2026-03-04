@@ -18,5 +18,6 @@ Makefile
 .idea/
 
 #Test data
-
+words.txt
 #черновики и вспомогательные файлы
+*.png

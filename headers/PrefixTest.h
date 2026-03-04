@@ -1,16 +1,14 @@
 ﻿#pragma once
 #include <iostream>
 #include <vector>
-#include <random>
 #include <algorithm>
 #include <chrono>
 #include <cassert>
-#include <set>
-#include <functional>
-#include <concepts>
 #include <memory>
+#include <fstream>
+#include <sstream>
 #include "PrefixTree.h"
-//#include "OpenHashTable.h"
+#include "imported/OpenHashTable.h" //для сравнения - хэш-таблицы
 
 using namespace PrefixTree;
 
@@ -25,20 +23,20 @@ public:
 		std::cout << "========================================\n\n";	
 
 		// 1. Тесты на работоспособность с разными типами
+		std::cout << "\n1. Main functionality TESTS\n";
+		std::cout << "-------------------------------------\n";
 		test_with_value_type<NodeTemplate, int>("int");
 		test_with_value_type<NodeTemplate, std::string>("string");
 		test_with_value_type<NodeTemplate, std::unique_ptr<std::string>>("unique_ptr");
 		test_with_value_type<NodeTemplate, DataStruct>("DataStruct");
+		std::cout << "-------------------------------------\n";
 		
-		
-
-		// 2. Основной тест на вставку/удаление
-		//main_test();
-
+		// 2. Основной тест на вставку/удаление и сравнение с хэш-таблицей
+		comparison_test<NodeTemplate>();
+		std::cout << "-------------------------------------\n";
 		// 3. Тест копирования и перемещения
-		//test_copy_move_semantics();
-
-		//4. Тесты на на сравнение с хэш-таблицей
+		test_move_semantics<NodeTemplate>();		
+		
 		std::cout << "\n========================================\n";
 		std::cout << "ALL TESTS PASSED SUCCESSFULLY!\n";
 		std::cout << "========================================\n";
@@ -53,157 +51,6 @@ private:
 	};
 	
 	// ==================== 1. Тесты на проверку основной функциональности ====================
-		/*static void test_edge_cases() {
-		std::cout << "\n1. EDGE CASES TEST\n";
-		// Тестируем с разными типами значений
-		test_edge_cases_for_type<std::string>("std::string");
-		test_edge_cases_for_type<int>("int");
-		test_edge_cases_for_type<std::unique_ptr<std::string>>("std::unique_ptr<std::string>");
-		test_edge_cases_for_type<DataStruct>("DataStruct");
-
-		std::cout << "++ All edge cases passed\n\n";
-	}*/
-	/*
-	template<typename ValueType>
-	static void test_edge_cases_for_type(const std::string& type_name) {
-		std::cout << "\n--- Testing " << type_name << " ---\n";
-
-		// Создаем дерево (выбираем тип по ситуации)
-		//using TestTrie = Tree;  // Tree уже параметризована из класса
-
-		PrefixTree::Trie<std::string, ValueType, Node> trie;
-		auto data = getTestData();
-
-		// 1. Вставка
-		std::cout << "  Inserting " << data.size() << " items...\n";
-		for (const auto& [key, val_str] : data) {
-			trie.insert(key, cover_value<ValueType>(val_str));
-		}
-
-		// 2. Проверка поиска (find)
-		std::cout << "  Testing find()...\n";
-		for (const auto& [key, val_str] : data) {
-			auto* found = trie.find(key);
-			if (!found) {
-				std::cerr << "    ERROR: Key '" << key << "' not found!\n";
-				continue;
-			}
-
-			// Проверяем значение в зависимости от типа
-			if constexpr (std::is_same_v<ValueType, std::string>) {
-				if (*found != val_str) {
-					std::cerr << "    ERROR: Value mismatch for '" << key << "'\n";
-				}
-			}
-			else if constexpr (std::is_same_v<ValueType, std::unique_ptr<std::string>>) {
-				if (found.get() != val_str) {
-					std::cerr << "    ERROR: Value mismatch for '" << key << "'\n";
-				}
-			}
-			else if constexpr (std::is_same_v<ValueType, int>) {
-				if (*found != static_cast<int>(val_str.length())) {
-					std::cerr << "    ERROR: Value mismatch for '" << key << "'\n";
-				}
-			}
-			else if constexpr (std::is_same_v<ValueType, DataStruct>) {
-				if (found->value != val_str) {
-					std::cerr << "    ERROR: Value mismatch for '" << key << "'\n";
-				}
-			}
-		}
-
-		// 3. Проверка search (только для копируемых типов)
-		if constexpr (std::is_copy_constructible_v<ValueType>) {
-			std::cout << "  Testing search()...\n";
-			for (const auto& [key, val_str] : data) {
-				auto opt = trie.search(key);
-				if (!opt.has_value()) {
-					std::cerr << "    ERROR: Key '" << key << "' not found in search!\n";
-					continue;
-				}
-
-				// Проверка аналогично find
-				if constexpr (std::is_same_v<ValueType, std::string>) {
-					if (*opt != val_str) {
-						std::cerr << "    ERROR: Search value mismatch for '" << key << "'\n";
-					}
-				}
-				// ... остальные типы
-			}
-		}
-
-		// 4. Проверка startsWith
-		std::cout << "  Testing startsWith()...\n";
-		std::vector<std::pair<std::string, bool>> prefix_tests = {
-			{"cat", true},    // есть cat и catfish
-			{"dog", true},    // есть dog и dogma
-			{"wolf", true},   // есть wolf и wolfram
-			{"fox", true},    // есть fox
-			{"ra", true},     // rabbit
-			{"be", true},     // bear, bearcat
-			{"z", false},     // нет такого
-			{"cattle", true}, // точное совпадение
-			{"", true}        // пустой префикс - должно быть true (все слова)
-		};
-
-		for (const auto& [prefix, expected] : prefix_tests) {
-			bool result = trie.startsWith(prefix);
-			if (result != expected) {
-				std::cerr << "    ERROR: startsWith('" << prefix << "') = "
-					<< result << ", expected " << expected << "\n";
-			}
-		}
-
-		// 5. Удаление нескольких ключей
-		std::cout << "  Testing remove()...\n";
-		std::vector<std::string> to_remove = { "cat", "wolf", "foxhole", "a" };
-		for (const auto& key : to_remove) {
-			bool removed = trie.remove(key);
-			if (!removed) {
-				std::cerr << "    ERROR: Failed to remove '" << key << "'\n";
-			}
-		}
-
-		// 6. Проверка, что удаленные ключи действительно исчезли
-		for (const auto& key : to_remove) {
-			if (trie.find(key)) {
-				std::cerr << "    ERROR: Key '" << key << "' still exists after remove!\n";
-			}
-		}
-		
-
-		// 8. Тест cleanup (визуально в отладчике)
-		std::cout << "  Running cleanup (check in debugger)...\n";
-		trie.cleanup();
-
-		// 9. Тест clone (только для копируемых типов)
-		if constexpr (std::is_copy_constructible_v<ValueType>) {
-			std::cout << "  Testing clone()...\n";
-			auto cloned = trie.clone();
-
-			// Проверяем, что клон содержит те же ключи
-			for (const auto& [key, val_str] : data) {
-				if (std::find(to_remove.begin(), to_remove.end(), key) != to_remove.end()) {
-					continue;
-				}
-				if (!cloned.find(key)) {
-					std::cerr << "    ERROR: Key '" << key << "' missing in clone!\n";
-				}
-			}
-		}
-
-		// 10. Очистка
-		std::cout << "  Clearing trie...\n";
-		trie.clear();
-
-		// Проверка, что все очистилось
-		if (trie.find("dog")) {  // любое слово, которое было
-			std::cerr << "    ERROR: Trie not empty after clear!\n";
-		}
-
-		std::cout << "  " << type_name << " tests completed.\n";
-	}*/
-
 	template<template<typename> typename NodeTemplate, typename ValueType>
 	static void test_with_value_type(const std::string& type_name) {
 		std::cout << "\n--- ValueType: " << type_name << " ---\n";
@@ -342,6 +189,76 @@ private:
 
 		std::cout << "    ++ All tests passed for " << type_name << "\n";
 	}
+	
+	// ==================== 2. Комплексный тест производительности ====================	
+	template<template<typename> typename NodeTemplate>
+	static void comparison_test() {
+		std::cout << "\n2. Performance comparison TESTS\n";
+		std::cout << "-------------------------------------\n";
+		
+		std::string path = std::string(TEST_DIR) + "/words.txt";		
+		auto data = read_words_from_file(path);
+		
+		//1. Замерим сначала префиксное дерево
+		using TrieString = PrefixTree::Trie<std::string, std::string, NodeTemplate<std::string>>;
+		TrieString trie;
+		std::cout << "\n *** Test Trie<string, string>\n";
+		single_performance_test(data, trie);
+		
+		//2. А теперь хэш-таблицу
+		std::cout << "\n *** Test OpenHashTable<string, string>\n";
+		OpenHashTable<std::string, std::string> hashTable(2001, 1, 1);		
+		single_performance_test(data, hashTable);
+		std::cout << "++ Comparison test completed\n\n";
+	}
+	// ==================== 3. Тест move semantic ====================	
+	template<template<typename> typename NodeTemplate>
+	static void test_move_semantics() {
+		std::cout << "\n3. MOVE SEMANTICS TEST\n";
+		std::cout << "---------------------------\n";
+		
+		//подготовка
+		auto test_data = getTestData();
+		using TrieString = PrefixTree::Trie<std::string, std::string, NodeTemplate<std::string>>;
+		// Функция для проверки содержимого
+		auto check_contents = [&](const TrieString& trie, bool should_exist) {
+			for (const auto& [key, val] : test_data) {
+				auto* ptr = trie.find(key);
+				if (should_exist && (!ptr || *ptr != val)) return false;
+				if (!should_exist && ptr) return false;
+			}
+			return true;
+			};		
+		
+		TrieString original;
+		
+		for (size_t i = 0; i !=test_data.size() ; ++i) {
+			original.insert(test_data[i].first, test_data[i].second);
+		}
+
+		TrieString clone = original.clone(); //это чтобы сравнить
+		// Конструктор перемещения		
+		TrieString move_constructed(std::move(original));
+		assert(check_contents(move_constructed, true));      // moved содержит данные
+		assert(move_constructed.size() == test_data.size()); // проверим размер
+		assert(check_contents(original, false));  // original пуст (не содержит данных)
+		assert(original.size() == 0);
+		std::cout << "+ Move constructor\n";
+
+		//Оператор присваивания перемещением		
+		TrieString move_assigned = std::move(move_constructed);
+		assert(check_contents(move_assigned, true));      //данные
+		assert(move_assigned.size() == test_data.size()); // проверим размер
+		assert(check_contents(move_constructed, false));  // исходник пуст (не содержит данных)
+		assert(move_constructed.size() == 0);
+		std::cout << "+ Move assignment\n";		
+
+		//Self-присваивание перемещением		
+		move_assigned = std::move(move_assigned);
+		assert(check_contents(move_assigned, true));      //данные
+		assert(move_assigned.size() == test_data.size()); // проверим размер		
+		std::cout << "+ Self-move assignment\n";
+	}
 	//=================== вспомогательные функции
 	//проверка префиксов
 	static void test_prefixes(const auto& trie) {
@@ -366,6 +283,50 @@ private:
 		}
 
 	}
+	//функция теста производительности на одном контейнере
+	template<typename Container>
+	static void single_performance_test(std::vector<std::pair<std::string, std::string>>& data, 
+		Container& container) {		
+		
+		std::cout << "Insert test --------------------------\n";
+		
+		auto start = std::chrono::high_resolution_clock::now();
+		for (const auto& [key, value] : data) {
+			container.insert(key, value);			
+		}
+		auto end = std::chrono::high_resolution_clock::now();
+		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+		std::cout << "  Inserted " << data.size() <<" keys in " << duration.count() << " us\n";
+		std::cout << "  Container size: " << container.size() <<  "\n";
+
+		std::cout << "Find 10% --------------------------\n";
+		size_t to_find = data.size() / 10;
+		start = std::chrono::high_resolution_clock::now();
+		for (size_t i = 0; i != to_find; ++i) {
+			auto val = container.find(data[i].first);
+			assert(val);
+		}
+		end = std::chrono::high_resolution_clock::now();
+		duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+		std::cout << "  10% elements founded in " << duration.count() << " us\n";
+		
+		std::cout << "Remove 10% --------------------------\n";
+
+		size_t to_remove = data.size() / 10;
+		start = std::chrono::high_resolution_clock::now();
+		for (size_t i = 0; i != to_remove; ++i) {
+			bool success = container.remove(data[i].first);
+			assert(success);
+		}
+		end = std::chrono::high_resolution_clock::now();
+		duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+		std::cout << "  10% elements removed in " << duration.count() << " us\n";
+		std::cout << "  New size: " << container.size() << "\n";	
+	}
+	
 	//"упаковщик" текстового значения в разные типы
 	template<typename ValueType>
 	static ValueType cover_value(const std::string& value) {
@@ -415,263 +376,39 @@ private:
 		};
 	}
 
+	//получение тестовых данных из файла
+	static std::vector<std::pair<std::string, std::string>> read_words_from_file(const std::string& filename) {
+		std::vector<std::pair<std::string, std::string>> result;
+		std::ifstream file(filename);
 
-	// ==================== 2. Основной тест ====================	
-	/*
-	static void main_test() {
-		std::cout << "\n2. MAIN TEST\n";
-		std::cout << "-------------------------------------\n";
-
-		size_t M = 101;
-		for (size_t i = 0; i != 6; ++i) {
-			std::cout << "Iteration " << i << "; M =" << M << "\n";
-			single_main_test(M);
-			M = M * 10 + 1;
+		if (!file.is_open()) {
+			std::cerr << "ERROR: Cannot open file " << filename << std::endl;
+			return result;
 		}
-		std::cout << "++ Main test completed\n\n";
+
+		std::string line;
+		while (std::getline(file, line)) {
+			if (line.empty()) continue;
+
+			std::istringstream iss(line);
+			std::string word, transcription, translation;
+
+			// Читаем три колонки, разделенные табуляцией
+			if (std::getline(iss, word, '\t') &&
+				std::getline(iss, transcription, '\t') &&
+				std::getline(iss, translation, '\t')) {
+				
+				// Приводим key к нижнему регистру
+				for (char& c : word) {
+					c = std::tolower(static_cast<unsigned char>(c));
+				}
+
+				// Значение = транскрипция + перевод
+				std::string value = transcription + " " + translation;
+				result.emplace_back(word, value);
+			}
+		}
+
+		return result;
 	}
-
-	static void test_copy_move_semantics() {
-		std::cout << "\n3. COPY/MOVE SEMANTICS TEST\n";
-		std::cout << "---------------------------\n";
-
-		size_t M = 50;
-		auto data = gen_data(M);
-		// Создаём исходную таблицу и заполняем
-		HashTable original(M);
-		for (size_t i = 0; i != M; ++i) {
-			original.insert(data[i].first, data[i].second);
-		}
-
-		// 4.1 Конструктор копирования
-		HashTable copy_constructed(original);
-		verify_equality(original, copy_constructed, data, "copy constructor");
-		std::cout << "+ Copy constructor\n";
-
-		// 4.2 Оператор присваивания копированием		
-		HashTable copy_assigned = original;
-		verify_equality(original, copy_assigned, data, "copy assignment");
-		std::cout << "+ Copy assignment\n";
-
-		// 4.3 Конструктор перемещения
-		HashTable temp_for_move1 = original; // копируем
-		HashTable move_constructed(std::move(temp_for_move1));
-		verify_equality(original, move_constructed, data, "move constructor");
-		assert(temp_for_move1.empty() || temp_for_move1.size() == 0);
-		std::cout << "+ Move constructor\n";
-
-		// 4.4 Оператор присваивания перемещением
-		HashTable temp_for_move2 = original; // копируем		
-		HashTable move_assigned = std::move(temp_for_move2);
-		verify_equality(original, move_assigned, data, "move assignment");
-		assert(temp_for_move2.empty() || temp_for_move2.size() == 0);
-		std::cout << "+ Move assignment\n";
-
-		// 4.5 Self-assignment
-		HashTable self_assigned = original;
-		self_assigned = self_assigned; // self-assignment
-		verify_equality(original, self_assigned, data, "self assigment");
-		std::cout << "+ Self-assignment\n";
-		std::cout << "++ Copy/move semantics test completed\n\n";
-	}
-
-	// Тест с разными коэффициентами (для OpenHashTable)    
-	static void test_coefficients() {
-		std::vector<std::tuple<size_t, size_t, size_t>> params = {
-			{950041, 0, 1},    // классический
-			{950041, 1, 1},    // с линейным членом
-			{950041, 2, 3},     // простые числа            
-		};
-
-		std::cout << "\n4. COEFFICIENTS TEST\n";
-		std::cout << "-------------------------------------\n";
-
-		for (auto [M, A, B] : params) {
-			std::cout << "\n ***** M = " << M << "; A = " << A << "; B = " << B << "\n";
-			single_main_test(M, A, B);
-		}
-
-		std::cout << "++ Coefficients test completed\n\n";
-	}
-
-	// Тест на исключения
-	static void test_exceptions() {
-		std::cout << "\n5. EXCEPTIONS TEST\n";
-		std::cout << "------------------\n";
-
-		// Проверяем, что конструктор кидает при M=0
-		try {
-			HashTable(0);
-			std::cout << "FAILED: Expected std::invalid_argument, but no exception thrown";
-		}
-		catch (const std::invalid_argument&) {
-			std::cout << "+ NON-ZERO M test passed\n";
-		}
-		catch (...) {
-			std::cout << "FAILED: Expected std::invalid_argument, but different exception thrown";
-		}
-
-		// Проверка взаимной простоты (только для OpenHashTable)
-		if constexpr (std::is_same_v<HashTable, OpenHashTable<int, std::string>>) {
-			try {
-				OpenHashTable<int, std::string> bad_table(100, 2, 2); // A=2, B=2, M=100 (gcd(2,100)=2)
-				std::cout << "FAILED: Expected std::invalid_argument about coprime, but no exception thrown";
-			}
-			catch (const std::invalid_argument&) {
-				std::cout << "+ Coprime check passed\n";
-			}
-			catch (...) {
-				std::cout << "FAILED: Expected std::invalid_argument, but different exception thrown";
-			}
-			// Проверка на нулевый коэффициенты (только для OpenHashTable)
-			try {
-				OpenHashTable<int, std::string> bad_table(100, 0, 0); // A, B == 0
-				std::cout << "FAILED: Expected std::invalid_argument about zero A B, but no exception thrown";
-			}
-			catch (const std::invalid_argument&) {
-				std::cout << "+ NON ZERO A&B check passed\n";
-			}
-			catch (...) {
-				std::cout << "FAILED: Expected std::invalid_argument, but different exception thrown";
-			}
-		}
-	}
-	// ==================== Вспомогательные функции ====================	
-	//функция компплексного теста на единичном наборе данных
-	static void single_main_test(size_t M, size_t a = 0, size_t b = 1) {
-
-		HashTable table = [&]() {
-			if constexpr (std::is_same_v<HashTable, OpenHashTable<int, std::string>>) {
-				return HashTable(M, a, b);
-			}
-			else {
-				return HashTable(M);
-			}
-			}();
-
-		std::cout << "Fill table --------------------------\n";
-		auto data = gen_data(M / 4 * 3);
-		auto start = std::chrono::high_resolution_clock::now();
-		for (auto item : data) {
-			bool success = table.insert(item.first, item.second);
-			assert(success);
-		}
-		auto end = std::chrono::high_resolution_clock::now();
-		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-		std::cout << "  Table filled in " << duration.count() << " ms\n";
-		std::cout << "  Size: " << table.size() << ", buckets " << table.max_bucket_count() << "\n";
-		std::cout << "  Load factor: " << table.load_factor() << "\n";
-
-		std::cout << "Find 10% --------------------------\n";
-		size_t to_find = M / 40 * 3;
-		start = std::chrono::high_resolution_clock::now();
-		for (size_t i = 0; i != to_find; ++i) {
-			auto val = table.find(data[i].first);
-			assert(val);
-		}
-		end = std::chrono::high_resolution_clock::now();
-		duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-		std::cout << "  10% elements founded in " << duration.count() << " ms\n";
-		std::cout << "Remove 10% --------------------------\n";
-
-		size_t to_remove = M / 40 * 3;
-		start = std::chrono::high_resolution_clock::now();
-		for (size_t i = 0; i != to_remove; ++i) {
-			bool success = table.remove(data[i].first);
-			assert(success);
-		}
-		end = std::chrono::high_resolution_clock::now();
-		duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-		std::cout << "  10% elements removed in " << duration.count() << " ms\n";
-		std::cout << "  New size: " << table.size() << ", buckets " << table.max_bucket_count() << "\n";
-		std::cout << "  Load factor: " << table.load_factor() << "\n";
-
-		std::cout << "Rehash X2 --------------------------\n";
-
-		start = std::chrono::high_resolution_clock::now();
-		table.rehash(M * 2 + 1);
-		end = std::chrono::high_resolution_clock::now();
-		duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-		std::cout << "  Table have been rehashed in " << duration.count() << " ms\n";
-		std::cout << "  New size: " << table.size() << ", buckets " << table.max_bucket_count() << "\n";
-		std::cout << "  Load factor: " << table.load_factor() << "\n";
-	}
-	//проверка скопированных / перемещенных таблиц
-	static void verify_equality(const HashTable& t1, const HashTable& t2,
-		const std::vector<std::pair<int, std::string>>& test_data, const std::string& test_name) {
-
-		// 1. Проверяем размер
-		if (t1.size() != t2.size()) {
-			std::cerr << "FAILED " << test_name << ": sizes differ: "
-				<< t1.size() << " vs " << t2.size() << std::endl;
-			return;
-		}
-
-		// 2. Проверяем empty() согласованность
-		if (t1.empty() != t2.empty()) {
-			std::cerr << "FAILED " << test_name << ": empty() mismatch" << std::endl;
-			return;
-		}
-
-		// 3. Проверяем load_factor
-		if (std::abs(t1.load_factor() - t2.load_factor()) > 1e-10) {
-			std::cerr << "FAILED " << test_name << ": load factors differ: "
-				<< t1.load_factor() << " vs " << t2.load_factor() << std::endl;
-			return;
-		}
-
-		// 4. Проверяем max_bucket_count
-
-		if (t1.max_bucket_count() != t2.max_bucket_count()) {
-			std::cerr << "FAILED " << test_name << ": max_bucket_count differ: "
-				<< t1.max_bucket_count() << " vs " << t2.max_bucket_count() << std::endl;
-			return;
-		}
-
-		std::cout << "PASSED " << test_name << " (basic checks)" << std::endl;
-
-		// Проверяем все ключи из тестовых данных
-		for (const auto& [key, expected_value] : test_data) {
-			auto* val1 = t1.find(key);
-			auto* val2 = t2.find(key);
-
-			// Проверяем наличие
-			if ((val1 == nullptr) != (val2 == nullptr)) {
-				std::cerr << "FAILED " << test_name << ": key " << key
-					<< " exists in one table but not the other" << std::endl;
-				return;
-			}
-
-			// Если ключ есть в обеих, проверяем значение
-			if (val1 != nullptr && *val1 != *val2) {
-				std::cerr << "FAILED " << test_name << ": value mismatch for key " << key
-					<< ": '" << *val1 << "' vs '" << *val2 << "'" << std::endl;
-				return;
-			}
-		}
-		std::cout << "PASSED " << test_name << " (full content check)" << std::endl;
-	}
-
-	// ==================== Генерация тестовых данных ====================	
-
-	static std::vector<std::pair<int, std::string>> gen_data(size_t size) {
-		// Подготовка данных
-		std::vector<std::pair<int, std::string>> data(size);
-
-		for (size_t i = 0; i < size; i++) {
-			std::pair<int, std::string> item{ static_cast<int>(i), std::to_string(i) };
-			data[i] = item;
-		}
-
-		std::random_device rd;
-		std::mt19937 g(rd());
-		std::shuffle(data.begin(), data.end(), g);
-
-		return data;
-	}*/
-
 };

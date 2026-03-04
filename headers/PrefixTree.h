@@ -118,7 +118,7 @@ namespace PrefixTree {
         }
     };
 
-    // Вариант 3: Гибрид (умный по умолчанию)
+    // Вариант 3: Гибрид
     template<typename V>
     struct HybridNode : NodeBase {
         static constexpr size_t FAST_LETTERS = 8; // a-h
@@ -214,11 +214,31 @@ namespace PrefixTree {
         Trie(const Trie&) = delete;
         Trie& operator=(const Trie&) = delete;
 
-        // Перемещение
-        Trie(Trie&&) noexcept = default;
-        Trie& operator=(Trie&&) noexcept = default;
+        // Конструктор перемещения
+        Trie(Trie&& other) noexcept
+            : root_holder(std::move(other.root_holder))
+            , element_count(std::exchange(other.element_count, 0)) {
+            
+            other.root_holder.root = std::make_unique<NodeT>();
+        }
 
-        // Деструктор - предупреждаем о возможной рекурсии
+        // Оператор перемещения
+        Trie& operator=(Trie&& other) noexcept {
+            if (this != &other) {
+                // Удаляем текущее содержимое
+                clear();
+
+                // Перемещаем данные
+                root_holder = std::move(other.root_holder);
+                element_count = std::exchange(other.element_count, 0);
+
+                // Восстанавливаем other
+                other.root_holder.root = std::make_unique<NodeT>();
+            }
+            return *this;
+        }
+
+        // Деструктор
         ~Trie() {
             clear();
         }
@@ -228,6 +248,7 @@ namespace PrefixTree {
         template<typename K, typename V>
         void insert(K&& key, V&& value) {
             traverse_or_create(std::forward<K>(key), [&](NodeT* node) {
+                if (!node->has_value) ++element_count;
                 node->value = std::forward<V>(value);
                 node->has_value = true;
                 });
@@ -246,7 +267,7 @@ namespace PrefixTree {
             return traverse(std::forward<K>(key), [&](NodeT* node) -> bool {
                 if (node && node->has_value) {
                     node->has_value = false;
-
+                    --element_count;
                     std::forward<Cleaner>(cleaner)(node->value);
 
                     return true;
@@ -344,8 +365,16 @@ namespace PrefixTree {
                 result.root_holder.root = cloneNode(root_holder.root.get());
             }
             return result;
-        }   
-    
+        }
+        //=========== Метрики ====================//
+        bool empty() const {
+            return element_count == 0;
+        }
+
+        size_t size() const {
+            return element_count;
+        }
+
 private:
         //=========== Вспомогательные методы ===============//
         // const traverse - только чтение
@@ -442,6 +471,8 @@ private:
         };
 
         RootHolder root_holder;
+
+        size_t element_count = 0; //счетчик ключей
 
         //ограничитель глубины рекурсии (для клонирования)
         static constexpr size_t MAX_DEPTH = 10000;

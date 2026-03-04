@@ -12,7 +12,7 @@ endif()
 project ("Trie")
 
 # Add source to this project's executable.
-add_executable (Trie  "src/main.cpp")
+add_executable (Trie  "src/main.cpp" "headers/imported/IHashTable.h" "headers/imported/OpenHashTable.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Trie PROPERTY CXX_STANDARD 20)
@@ -24,4 +24,12 @@ target_include_directories(Trie PRIVATE
     ${CMAKE_SOURCE_DIR}/src    
 )
 
-# TODO: Add tests and install targets if needed.
+# Опция для указания пути к тестам
+set(TEST_DIR "${CMAKE_SOURCE_DIR}/TestData" CACHE PATH "Path to test files")
+
+# Копируем тесты в build directory
+file(COPY ${TEST_DIR} DESTINATION ${CMAKE_BINARY_DIR})
+
+# Передаем путь к тестам в код
+target_compile_definitions(Trie PRIVATE 
+   TEST_DIR="${CMAKE_BINARY_DIR}/TestData")
