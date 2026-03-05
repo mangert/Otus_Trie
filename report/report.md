@@ -113,14 +113,14 @@ struct LoggingCleaner {
 
 ### Файлы проекта
 
-- `headers/PrefixTree.h` — основная реализация Trie
-- `headers/PrefixTest.h` — фреймворк для тестирования
-- `src/Trie.cpp` — реализация задачи leetcode
-- `src/main.cpp` — точка входа, запуск тестов
-- `report/output.txt` — полный вывод программы
+- [`headers/PrefixTree.h`](../headers/PrefixTree.h) — основная реализация Trie
+- [`headers/PrefixTest.h`](../headers/PrefixTest.h) — фреймворк для тестирования
+- [`src/Trie.cpp`](../src/Trie.cpp) — реализация задачи leetcode
+- [`src/main.cpp`](../src/main.cpp) — точка входа, запуск тестов
+- [`report/output.txt`](output.txt) — полный вывод программы
 
 ### Результаты запуска
 
-Полный вывод программы с результатами тестирования доступен в файле [`output.txt`](./report/output.txt).
+Полный вывод программы с результатами тестирования доступен в файле [`output.txt`](output.txt).
 
 ---
