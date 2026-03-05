@@ -14,8 +14,6 @@ Prefix Tree TEST (Testing ArrayNode)
     Testing search()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Testing clone()...
     Clearing trie...
@@ -27,8 +25,6 @@ Prefix Tree TEST (Testing ArrayNode)
     Testing search()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Testing clone()...
     Clearing trie...
@@ -39,8 +35,6 @@ Prefix Tree TEST (Testing ArrayNode)
     Testing find()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Clearing trie...
     ++ All tests passed for unique_ptr
@@ -51,8 +45,6 @@ Prefix Tree TEST (Testing ArrayNode)
     Testing search()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Testing clone()...
     Clearing trie...
@@ -64,22 +56,22 @@ Prefix Tree TEST (Testing ArrayNode)
 
  *** Test Trie<string, string>
 Insert test --------------------------
-  Inserted 2000 keys in 8705 us
+  Inserted 2000 keys in 2249 us
   Container size: 1996
 Find 10% --------------------------
-  10% elements founded in 123 us
+  10% elements founded in 18 us
 Remove 10% --------------------------
-  10% elements removed in 86 us
+  10% elements removed in 53 us
   New size: 1796
 
  *** Test OpenHashTable<string, string>
 Insert test --------------------------
-  Inserted 2000 keys in 13904 us
+  Inserted 2000 keys in 888 us
   Container size: 1996
 Find 10% --------------------------
-  10% elements founded in 56 us
+  10% elements founded in 28 us
 Remove 10% --------------------------
-  10% elements removed in 44 us
+  10% elements removed in 19 us
   New size: 1796
 ++ Comparison test completed
 
@@ -90,6 +82,36 @@ Remove 10% --------------------------
 + Move constructor
 + Move assignment
 + Self-move assignment
+
+4. Custom Cleaner TEST
+---------------------------
+
+a. Clean old value when insert duplicate key
+  Cleaning: DOG
+---------------------------
+
+b. Clean value when remove key
+Value to remove WOLF key wolf
+  Cleaning: WOLF
+---------------------------
+
+c. Clean when destroy trie (clearing in destructor)
+  Cleaning: EMPTY
+  Cleaning: WOLVERINE
+  Cleaning: WOLFRAM
+  Cleaning: RABBIT
+  Cleaning: FOX
+  Cleaning: FOXHOLE
+  Cleaning: new value
+  Cleaning: DOGMA
+  Cleaning: DOGGIE
+  Cleaning: CAT
+  Cleaning: CATTLE
+  Cleaning: CATFISH
+  Cleaning: B
+  Cleaning: BEAR
+  Cleaning: BEARCAT
+  Cleaning: A
 
 ========================================
 ALL TESTS PASSED SUCCESSFULLY!
@@ -110,8 +132,6 @@ Prefix Tree TEST (Testing HashMapNode)
     Testing search()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Testing clone()...
     Clearing trie...
@@ -123,8 +143,6 @@ Prefix Tree TEST (Testing HashMapNode)
     Testing search()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Testing clone()...
     Clearing trie...
@@ -135,8 +153,6 @@ Prefix Tree TEST (Testing HashMapNode)
     Testing find()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Clearing trie...
     ++ All tests passed for unique_ptr
@@ -147,8 +163,6 @@ Prefix Tree TEST (Testing HashMapNode)
     Testing search()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Testing clone()...
     Clearing trie...
@@ -160,22 +174,22 @@ Prefix Tree TEST (Testing HashMapNode)
 
  *** Test Trie<string, string>
 Insert test --------------------------
-  Inserted 2000 keys in 22161 us
+  Inserted 2000 keys in 3488 us
   Container size: 1996
 Find 10% --------------------------
-  10% elements founded in 824 us
+  10% elements founded in 0 us
 Remove 10% --------------------------
-  10% elements removed in 585 us
+  10% elements removed in 172 us
   New size: 1796
 
  *** Test OpenHashTable<string, string>
 Insert test --------------------------
-  Inserted 2000 keys in 11212 us
+  Inserted 2000 keys in 812 us
   Container size: 1996
 Find 10% --------------------------
-  10% elements founded in 71 us
+  10% elements founded in 20 us
 Remove 10% --------------------------
-  10% elements removed in 57 us
+  10% elements removed in 23 us
   New size: 1796
 ++ Comparison test completed
 
@@ -186,6 +200,36 @@ Remove 10% --------------------------
 + Move constructor
 + Move assignment
 + Self-move assignment
+
+4. Custom Cleaner TEST
+---------------------------
+
+a. Clean old value when insert duplicate key
+  Cleaning: DOG
+---------------------------
+
+b. Clean value when remove key
+Value to remove WOLF key wolf
+  Cleaning: WOLF
+---------------------------
+
+c. Clean when destroy trie (clearing in destructor)
+  Cleaning: EMPTY
+  Cleaning: A
+  Cleaning: RABBIT
+  Cleaning: B
+  Cleaning: BEAR
+  Cleaning: BEARCAT
+  Cleaning: FOX
+  Cleaning: FOXHOLE
+  Cleaning: WOLFRAM
+  Cleaning: WOLVERINE
+  Cleaning: new value
+  Cleaning: DOGGIE
+  Cleaning: DOGMA
+  Cleaning: CAT
+  Cleaning: CATTLE
+  Cleaning: CATFISH
 
 ========================================
 ALL TESTS PASSED SUCCESSFULLY!
@@ -206,8 +250,6 @@ Prefix Tree TEST (Testing HybridNode)
     Testing search()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Testing clone()...
     Clearing trie...
@@ -219,8 +261,6 @@ Prefix Tree TEST (Testing HybridNode)
     Testing search()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Testing clone()...
     Clearing trie...
@@ -231,8 +271,6 @@ Prefix Tree TEST (Testing HybridNode)
     Testing find()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Clearing trie...
     ++ All tests passed for unique_ptr
@@ -243,8 +281,6 @@ Prefix Tree TEST (Testing HybridNode)
     Testing search()...
     Testing startsWith()...
     Testing remove()...
-    Testing remove() with custom cleaner...
-    ---Custom clean value, key = b
     Running cleanup...
     Testing clone()...
     Clearing trie...
@@ -256,22 +292,22 @@ Prefix Tree TEST (Testing HybridNode)
 
  *** Test Trie<string, string>
 Insert test --------------------------
-  Inserted 2000 keys in 21168 us
+  Inserted 2000 keys in 3598 us
   Container size: 1996
 Find 10% --------------------------
-  10% elements founded in 473 us
+  10% elements founded in 0 us
 Remove 10% --------------------------
-  10% elements removed in 391 us
+  10% elements removed in 69 us
   New size: 1796
 
  *** Test OpenHashTable<string, string>
 Insert test --------------------------
-  Inserted 2000 keys in 11022 us
+  Inserted 2000 keys in 886 us
   Container size: 1996
 Find 10% --------------------------
-  10% elements founded in 65 us
+  10% elements founded in 27 us
 Remove 10% --------------------------
-  10% elements removed in 58 us
+  10% elements removed in 24 us
   New size: 1796
 ++ Comparison test completed
 
@@ -283,6 +319,39 @@ Remove 10% --------------------------
 + Move assignment
 + Self-move assignment
 
+4. Custom Cleaner TEST
+---------------------------
+
+a. Clean old value when insert duplicate key
+  Cleaning: DOG
+---------------------------
+
+b. Clean value when remove key
+Value to remove WOLF key wolf
+  Cleaning: WOLF
+---------------------------
+
+c. Clean when destroy trie (clearing in destructor)
+  Cleaning: EMPTY
+  Cleaning: RABBIT
+  Cleaning: WOLVERINE
+  Cleaning: WOLFRAM
+  Cleaning: FOX
+  Cleaning: FOXHOLE
+  Cleaning: new value
+  Cleaning: DOGMA
+  Cleaning: DOGGIE
+  Cleaning: CAT
+  Cleaning: CATTLE
+  Cleaning: CATFISH
+  Cleaning: B
+  Cleaning: BEAR
+  Cleaning: BEARCAT
+  Cleaning: A
+
 ========================================
 ALL TESTS PASSED SUCCESSFULLY!
 ========================================
+
+D:\Otus_Algo\Trie\out\build\x64-release\Trie.exe (process 9552) exited with code 0 (0x0).
+Press any key to close this window . . .

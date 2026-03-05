@@ -37,6 +37,9 @@ public:
 		// 3. Тест копирования и перемещения
 		test_move_semantics<NodeTemplate>();		
 		
+		// 4. Тест кастомного удаления
+		test_custom_cleaner<NodeTemplate>();
+		
 		std::cout << "\n========================================\n";
 		std::cout << "ALL TESTS PASSED SUCCESSFULLY!\n";
 		std::cout << "========================================\n";
@@ -143,21 +146,7 @@ private:
 			if (!trie.find(key)) {
 				std::cerr << "    ERROR: Key '" << key << "' missing after removals!\n";
 			}
-		}
-
-		//5а. Тест кастомного удаления (условно - просто "испортим" значение и посмотрим в отладчике,
-		//в консоль выведем, что удалитель сработал)
-		std::cout << "    Testing remove() with custom cleaner...\n";
-		std::string key = "b";
-		auto deleter = [&](ValueType& val) {
-			std::cout << "    ---Custom clean value, key = " << key << std::endl;
-			val = cover_value<ValueType>("DELETED");
-			};
-		to_remove.emplace_back(key); //дополним вектор удаленных для дальнейшего использования
-		bool removed = trie.remove(key, deleter);
-		if (!removed) {
-			std::cerr << "    ERROR: Failed to remove " << key << "\n";
-		}
+		}		
 
 		// 6. Тест cleanup
 		std::cout << "    Running cleanup...\n";
@@ -258,6 +247,39 @@ private:
 		assert(check_contents(move_assigned, true));      //данные
 		assert(move_assigned.size() == test_data.size()); // проверим размер		
 		std::cout << "+ Self-move assignment\n";
+	}
+	// ==================== 4. Тест кастомного удалителя ====================	
+	template<template<typename> typename NodeTemplate>
+	static void test_custom_cleaner() {
+		
+		std::cout << "\n4. Custom Cleaner TEST\n";
+		std::cout << "---------------------------\n";		
+		
+		struct LoggingCleaner {
+			void operator()(std::string& val) const {
+				std::cout << "  Cleaning: " << val << std::endl;
+			}
+		};
+
+		using TrieType = PrefixTree::Trie<std::string, std::string, NodeTemplate<std::string>, LoggingCleaner>;
+		TrieType trie;
+
+		// Получаем тестовые данные
+		auto test_data = getTestData();
+
+		// Построим дерево		
+		for (const auto& [key, val_str] : test_data) {
+			trie.insert(key,val_str);
+		}
+		
+		std::cout << "\na. Clean old value when insert duplicate key\n";
+		trie.insert(test_data[1].first, "new value");
+		std::cout << "---------------------------\n";
+		std::cout << "\nb. Clean value when remove key\n";
+		std::cout << "Value to remove " << test_data[2].second << " key " << test_data[2].first << "\n";
+		trie.remove(test_data[2].first);
+		std::cout << "---------------------------\n";
+		std::cout << "\nc. Clean when destroy trie (clearing in destructor)\n";
 	}
 	//=================== вспомогательные функции
 	//проверка префиксов

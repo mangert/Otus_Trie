@@ -188,7 +188,26 @@ namespace PrefixTree {
             }
         }
     };
+    //-------------Дефолтный очиститель значения -------------------//    
+    struct NoopCleaner {
+        template<typename T>
+        void operator()(T&) const noexcept {}
+    };
 
+    // Концепт для проверки типа очистителя
+    template<typename T>
+    concept DefaultConstructible = std::is_default_constructible_v<T>;
+
+    template<typename T, typename Value>
+    concept InvocableWithValue = requires(T & cleaner, Value & val) {
+        { cleaner(val) } -> std::same_as<void>;
+    };
+
+    // Итоговый концепт для Cleaner
+    template<typename C, typename Value>
+    concept CleanerType = DefaultConstructible<C>
+        && InvocableWithValue<C, Value>;
+    
     //-------------Основной класс Trie -------------------//    
     /**
     * @tparam Value Type of values stored in trie.
@@ -201,14 +220,14 @@ namespace PrefixTree {
     * Example:
     * Trie<std::optional<MyType>> trie;
     */
-    template<typename Key, typename Value, NodeType NodeT>
+    template<typename Key, typename Value, NodeType NodeT, CleanerType<Value> Cleaner = NoopCleaner>
         requires std::convertible_to<Key, std::string_view>
     && std::is_default_constructible_v<Value>
-    class Trie {
+    class Trie {                
     public:
         //=========== Конструкторы ===============//
         // Конструктор по умолчанию
-        Trie() = default;
+        Trie(Cleaner c = Cleaner{}) : cleaner(std::move(c)) {}        
 
         // Запрещаем копирование
         Trie(const Trie&) = delete;
@@ -217,7 +236,8 @@ namespace PrefixTree {
         // Конструктор перемещения
         Trie(Trie&& other) noexcept
             : root_holder(std::move(other.root_holder))
-            , element_count(std::exchange(other.element_count, 0)) {
+            , element_count(std::exchange(other.element_count, 0)) 
+            , cleaner(std::move(other.cleaner)) {
             
             other.root_holder.root = std::make_unique<NodeT>();
         }
@@ -231,7 +251,7 @@ namespace PrefixTree {
                 // Перемещаем данные
                 root_holder = std::move(other.root_holder);
                 element_count = std::exchange(other.element_count, 0);
-
+                cleaner = std::move(other.cleaner);
                 // Восстанавливаем other
                 other.root_holder.root = std::make_unique<NodeT>();
             }
@@ -248,27 +268,22 @@ namespace PrefixTree {
         template<typename K, typename V>
         void insert(K&& key, V&& value) {
             traverse_or_create(std::forward<K>(key), [&](NodeT* node) {
-                if (!node->has_value) ++element_count;
+                if (node->has_value)
+                    cleaner(node->value);
+                else ++element_count;
                 node->value = std::forward<V>(value);
                 node->has_value = true;
                 });
         }
 
-        //удаление ключа
-         // Базовая версия - просто помечает как удаленное
+        //удаление ключа                 
         template<typename K>
         bool remove(K&& key) {
-            return remove(std::forward<K>(key), [](Value&) {});
-        }
-
-        // Версия с кастомным очистителем
-        template<typename K, typename Cleaner>
-        bool remove(K&& key, Cleaner&& cleaner) {
             return traverse(std::forward<K>(key), [&](NodeT* node) -> bool {
                 if (node && node->has_value) {
                     node->has_value = false;
-                    --element_count;
-                    std::forward<Cleaner>(cleaner)(node->value);
+                    --element_count;                    
+                    cleaner(node->value);
 
                     return true;
                 }
@@ -336,6 +351,8 @@ namespace PrefixTree {
 
             while (!stack.empty()) {
                 auto node = std::move(stack.top());
+                if (node->has_value)
+                    cleaner(node->value);
                 stack.pop();
 
                 // Собираем всех детей в стек
@@ -360,10 +377,13 @@ namespace PrefixTree {
          */
         Trie clone() const 
             requires std::is_copy_constructible_v<Value> {
+            
             Trie result;
             if (root_holder.root) {
                 result.root_holder.root = cloneNode(root_holder.root.get());
             }
+            result.element_count = element_count;
+            result.cleaner = cleaner;
             return result;
         }
         //=========== Метрики ====================//
@@ -473,6 +493,8 @@ private:
         RootHolder root_holder;
 
         size_t element_count = 0; //счетчик ключей
+        
+        [[no_unique_address]] Cleaner cleaner;  // очиститель значения - пустой для NoopCleaner
 
         //ограничитель глубины рекурсии (для клонирования)
         static constexpr size_t MAX_DEPTH = 10000;
