@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #include <iostream>
 #include <array>
 #include <vector>
@@ -10,16 +10,16 @@
 
 namespace PrefixTree {    
     
-    //-------------Описание структруры узлов -------------------//        
+    //-------------РћРїРёСЃР°РЅРёРµ СЃС‚СЂСѓРєС‚СЂСѓСЂС‹ СѓР·Р»РѕРІ -------------------//        
     
-    // Базовый маркер
+    // Р‘Р°Р·РѕРІС‹Р№ РјР°СЂРєРµСЂ
     struct NodeBase {};    
 
-    // Концепт для проверки типа узла
+    // РљРѕРЅС†РµРїС‚ РґР»СЏ РїСЂРѕРІРµСЂРєРё С‚РёРїР° СѓР·Р»Р°
     template<typename T>
     concept NodeType = std::derived_from<T, NodeBase>;
     
-    // Вариант 1: Классический массив (только строчные латинские буквы)
+    // Р’Р°СЂРёР°РЅС‚ 1: РљР»Р°СЃСЃРёС‡РµСЃРєРёР№ РјР°СЃСЃРёРІ (С‚РѕР»СЊРєРѕ СЃС‚СЂРѕС‡РЅС‹Рµ Р»Р°С‚РёРЅСЃРєРёРµ Р±СѓРєРІС‹)
     template<typename V>
     struct ArrayNode : NodeBase {
         
@@ -44,8 +44,8 @@ namespace PrefixTree {
             }
             children[c - 'a'] = std::move(node);
         }
-        //======== Обходы детей ============//
-        // const версия
+        //======== РћР±С…РѕРґС‹ РґРµС‚РµР№ ============//
+        // const РІРµСЂСЃРёСЏ
         template<typename F>
         void forEachChild(F&& func) const {
             for (size_t i = 0; i < children.size(); ++i) {
@@ -55,7 +55,7 @@ namespace PrefixTree {
                 }
             }
         }
-        // non-const версия (для модификации)
+        // non-const РІРµСЂСЃРёСЏ (РґР»СЏ РјРѕРґРёС„РёРєР°С†РёРё)
         template<typename F>
         void forEachChild(F&& func) {
             for (size_t i = 0; i < children.size(); ++i) {
@@ -65,7 +65,7 @@ namespace PrefixTree {
                 }
             }
         }
-        // Версия для перемещения unique_ptr (для clear)
+        // Р’РµСЂСЃРёСЏ РґР»СЏ РїРµСЂРµРјРµС‰РµРЅРёСЏ unique_ptr (РґР»СЏ clear)
         template<typename F>
         void forEachChildUnique(F&& func) {
             for (auto& child : children) {
@@ -76,7 +76,7 @@ namespace PrefixTree {
         }
     };
 
-    // Вариант 2: Хеш-таблица
+    // Р’Р°СЂРёР°РЅС‚ 2: РҐРµС€-С‚Р°Р±Р»РёС†Р°
     template<typename V>
     struct HashMapNode : NodeBase {
         std::unordered_map<char, std::unique_ptr<HashMapNode>> children;
@@ -92,22 +92,22 @@ namespace PrefixTree {
             children[c] = std::move(node);
         }        
 
-        //======== Обходы детей ============//
-        // const версия
+        //======== РћР±С…РѕРґС‹ РґРµС‚РµР№ ============//
+        // const РІРµСЂСЃРёСЏ
         template<typename F>
         void forEachChild(F&& func) const {
             for (const auto& [c, child_ptr] : children) {
                 std::forward<F>(func)(c, child_ptr.get());
             }
         }
-        // non-const версия (для модификации)
+        // non-const РІРµСЂСЃРёСЏ (РґР»СЏ РјРѕРґРёС„РёРєР°С†РёРё)
         template<typename F>
         void forEachChild(F&& func) {
             for (auto& [c, child_ptr] : children) {
                 std::forward<F>(func)(c, child_ptr.get());
             }
         }
-        // Версия для перемещения unique_ptr (для clear)
+        // Р’РµСЂСЃРёСЏ РґР»СЏ РїРµСЂРµРјРµС‰РµРЅРёСЏ unique_ptr (РґР»СЏ clear)
         template<typename F>
         void forEachChildUnique(F&& func) {
             for (auto& [c, child_ptr] : children) {
@@ -118,7 +118,7 @@ namespace PrefixTree {
         }
     };
 
-    // Вариант 3: Гибрид
+    // Р’Р°СЂРёР°РЅС‚ 3: Р“РёР±СЂРёРґ
     template<typename V>
     struct HybridNode : NodeBase {
         static constexpr size_t FAST_LETTERS = 8; // a-h
@@ -144,23 +144,23 @@ namespace PrefixTree {
             }
         }
         
-        //======== Обходы детей ============//
-        // const версия
+        //======== РћР±С…РѕРґС‹ РґРµС‚РµР№ ============//
+        // const РІРµСЂСЃРёСЏ
         template<typename F>
         void forEachChild(F&& func) const {
-            // Сначала быстрые дети
+            // РЎРЅР°С‡Р°Р»Р° Р±С‹СЃС‚СЂС‹Рµ РґРµС‚Рё
             for (size_t i = 0; i < fast_children.size(); ++i) {
                 if (fast_children[i]) {
                     char c = 'a' + static_cast<char>(i);
                     std::forward<F>(func)(c, fast_children[i].get());
                 }
             }
-            // Потом медленные
+            // РџРѕС‚РѕРј РјРµРґР»РµРЅРЅС‹Рµ
             for (const auto& [c, child_ptr] : slow_children) {
                 std::forward<F>(func)(c, child_ptr.get());
             }
         }
-        // non-const версия (для модификации)
+        // non-const РІРµСЂСЃРёСЏ (РґР»СЏ РјРѕРґРёС„РёРєР°С†РёРё)
         template<typename F>
         void forEachChild(F&& func) {
             for (size_t i = 0; i < fast_children.size(); ++i) {
@@ -173,7 +173,7 @@ namespace PrefixTree {
                 std::forward<F>(func)(c, child_ptr.get());
             }
         }
-        // Версия для перемещения unique_ptr (для clear)
+        // Р’РµСЂСЃРёСЏ РґР»СЏ РїРµСЂРµРјРµС‰РµРЅРёСЏ unique_ptr (РґР»СЏ clear)
         template<typename F>
         void forEachChildUnique(F&& func) {
             for (auto& child : fast_children) {
@@ -188,13 +188,13 @@ namespace PrefixTree {
             }
         }
     };
-    //-------------Дефолтный очиститель значения -------------------//    
+    //-------------Р”РµС„РѕР»С‚РЅС‹Р№ РѕС‡РёСЃС‚РёС‚РµР»СЊ Р·РЅР°С‡РµРЅРёСЏ -------------------//    
     struct NoopCleaner {
         template<typename T>
         void operator()(T&) const noexcept {}
     };
 
-    // Концепт для проверки типа очистителя
+    // РљРѕРЅС†РµРїС‚ РґР»СЏ РїСЂРѕРІРµСЂРєРё С‚РёРїР° РѕС‡РёСЃС‚РёС‚РµР»СЏ
     template<typename T>
     concept DefaultConstructible = std::is_default_constructible_v<T>;
 
@@ -203,12 +203,12 @@ namespace PrefixTree {
         { cleaner(val) } -> std::same_as<void>;
     };
 
-    // Итоговый концепт для Cleaner
+    // РС‚РѕРіРѕРІС‹Р№ РєРѕРЅС†РµРїС‚ РґР»СЏ Cleaner
     template<typename C, typename Value>
     concept CleanerType = DefaultConstructible<C>
         && InvocableWithValue<C, Value>;
     
-    //-------------Основной класс Trie -------------------//    
+    //-------------РћСЃРЅРѕРІРЅРѕР№ РєР»Р°СЃСЃ Trie -------------------//    
     /**
     * @tparam Value Type of values stored in trie.
     *
@@ -225,15 +225,15 @@ namespace PrefixTree {
     && std::is_default_constructible_v<Value>
     class Trie {                
     public:
-        //=========== Конструкторы ===============//
-        // Конструктор по умолчанию
+        //=========== РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂС‹ ===============//
+        // РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
         Trie(Cleaner c = Cleaner{}) : cleaner(std::move(c)) {}        
 
-        // Запрещаем копирование
+        // Р—Р°РїСЂРµС‰Р°РµРј РєРѕРїРёСЂРѕРІР°РЅРёРµ
         Trie(const Trie&) = delete;
         Trie& operator=(const Trie&) = delete;
 
-        // Конструктор перемещения
+        // РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ РїРµСЂРµРјРµС‰РµРЅРёСЏ
         Trie(Trie&& other) noexcept
             : root_holder(std::move(other.root_holder))
             , element_count(std::exchange(other.element_count, 0)) 
@@ -242,29 +242,29 @@ namespace PrefixTree {
             other.root_holder.root = std::make_unique<NodeT>();
         }
 
-        // Оператор перемещения
+        // РћРїРµСЂР°С‚РѕСЂ РїРµСЂРµРјРµС‰РµРЅРёСЏ
         Trie& operator=(Trie&& other) noexcept {
             if (this != &other) {
-                // Удаляем текущее содержимое
+                // РЈРґР°Р»СЏРµРј С‚РµРєСѓС‰РµРµ СЃРѕРґРµСЂР¶РёРјРѕРµ
                 clear();
 
-                // Перемещаем данные
+                // РџРµСЂРµРјРµС‰Р°РµРј РґР°РЅРЅС‹Рµ
                 root_holder = std::move(other.root_holder);
                 element_count = std::exchange(other.element_count, 0);
                 cleaner = std::move(other.cleaner);
-                // Восстанавливаем other
+                // Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµРј other
                 other.root_holder.root = std::make_unique<NodeT>();
             }
             return *this;
         }
 
-        // Деструктор
+        // Р”РµСЃС‚СЂСѓРєС‚РѕСЂ
         ~Trie() {
             clear();
         }
 
-        //=========== Основные операции ===============//        
-        // Вставка элемента
+        //=========== РћСЃРЅРѕРІРЅС‹Рµ РѕРїРµСЂР°С†РёРё ===============//        
+        // Р’СЃС‚Р°РІРєР° СЌР»РµРјРµРЅС‚Р°
         template<typename K, typename V>
         void insert(K&& key, V&& value) {
             traverse_or_create(std::forward<K>(key), [&](NodeT* node) {
@@ -276,7 +276,7 @@ namespace PrefixTree {
                 });
         }
 
-        //удаление ключа                 
+        //СѓРґР°Р»РµРЅРёРµ РєР»СЋС‡Р°                 
         template<typename K>
         bool remove(K&& key) {
             return traverse(std::forward<K>(key), [&](NodeT* node) -> bool {
@@ -291,22 +291,22 @@ namespace PrefixTree {
                 });
         }
 
-        //=========== Операции поиска и доступа ===============//       
-        // Проверка наличия ключа
+        //=========== РћРїРµСЂР°С†РёРё РїРѕРёСЃРєР° Рё РґРѕСЃС‚СѓРїР° ===============//       
+        // РџСЂРѕРІРµСЂРєР° РЅР°Р»РёС‡РёСЏ РєР»СЋС‡Р°
         template<typename K>
         bool contains(K&& key) const {
             return traverse(std::forward<K>(key), [](const NodeT* node) {
                 return node && node->has_value;
                 });
         }
-        // Поиск с возвратом по указателю (константная версия)
+        // РџРѕРёСЃРє СЃ РІРѕР·РІСЂР°С‚РѕРј РїРѕ СѓРєР°Р·Р°С‚РµР»СЋ (РєРѕРЅСЃС‚Р°РЅС‚РЅР°СЏ РІРµСЂСЃРёСЏ)
         template<typename K>
         const Value* find(K&& key) const {            
             return traverse(std::forward<K>(key), [](const NodeT* node) -> const Value* {                
                 return (node && node->has_value) ? &node->value : nullptr;
                 });
         }
-        // Поиск с возвратом по указателю
+        // РџРѕРёСЃРє СЃ РІРѕР·РІСЂР°С‚РѕРј РїРѕ СѓРєР°Р·Р°С‚РµР»СЋ
         template<typename K>
         Value* find(K&& key) {
             return traverse(std::forward<K>(key), [](NodeT* node) -> Value* {
@@ -314,7 +314,7 @@ namespace PrefixTree {
                 });
         }       
         
-        // Поиск с возвратом значения (только для копируемых типов)
+        // РџРѕРёСЃРє СЃ РІРѕР·РІСЂР°С‚РѕРј Р·РЅР°С‡РµРЅРёСЏ (С‚РѕР»СЊРєРѕ РґР»СЏ РєРѕРїРёСЂСѓРµРјС‹С… С‚РёРїРѕРІ)
         /**
          * @note The search(Key) method requires Value to be copy constructible.
          * For non-copyable types (like std::unique_ptr), clone is not available.
@@ -324,25 +324,25 @@ namespace PrefixTree {
         std::optional<Value> search(K&& key) const {
             return traverse(std::forward<K>(key), [](const NodeT* node) -> std::optional<Value> {
                 if (node && node->has_value) {
-                    return node->value;  // Возвращаем копию значения
+                    return node->value;  // Р’РѕР·РІСЂР°С‰Р°РµРј РєРѕРїРёСЋ Р·РЅР°С‡РµРЅРёСЏ
                 }
                 return std::nullopt;
                 });
         }
 
-        // Проверка префикса
+        // РџСЂРѕРІРµСЂРєР° РїСЂРµС„РёРєСЃР°
         template<typename K>
         bool startsWith(K&& prefix) const {
             return traverse(std::forward<K>(prefix), [](const NodeT* node) {
-                return node != nullptr;  // Просто проверяем, что путь существует
+                return node != nullptr;  // РџСЂРѕСЃС‚Рѕ РїСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ РїСѓС‚СЊ СЃСѓС‰РµСЃС‚РІСѓРµС‚
                 });
         }
-        //=========== Другие методы ===============//
-        //полная очистка дерева
+        //=========== Р”СЂСѓРіРёРµ РјРµС‚РѕРґС‹ ===============//
+        //РїРѕР»РЅР°СЏ РѕС‡РёСЃС‚РєР° РґРµСЂРµРІР°
         void clear() noexcept {
             
             if (!root_holder.root) {
-                root_holder.root = std::make_unique<NodeT>();  // на всякий случай
+                root_holder.root = std::make_unique<NodeT>();  // РЅР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№
                 return;
             }            
 
@@ -355,22 +355,22 @@ namespace PrefixTree {
                     cleaner(node->value);
                 stack.pop();
 
-                // Собираем всех детей в стек
+                // РЎРѕР±РёСЂР°РµРј РІСЃРµС… РґРµС‚РµР№ РІ СЃС‚РµРє
                 node->forEachChildUnique([&stack](std::unique_ptr<NodeT> child) {
                     if (child) {
                         stack.push(std::move(child));
                     }
                     });               
             }
-            // 2. Создаем новый пустой корень
+            // 2. РЎРѕР·РґР°РµРј РЅРѕРІС‹Р№ РїСѓСЃС‚РѕР№ РєРѕСЂРµРЅСЊ
             root_holder.root = std::make_unique<NodeT>();
         }
-        //Очистка "мертвых" узлов
+        //РћС‡РёСЃС‚РєР° "РјРµСЂС‚РІС‹С…" СѓР·Р»РѕРІ
         void cleanup() {            
             cleanup_impl(root_holder.root.get());
         }
         
-        //клонирование дерева
+        //РєР»РѕРЅРёСЂРѕРІР°РЅРёРµ РґРµСЂРµРІР°
         /**
          * @note The clone() method requires Value to be copy constructible.
          * For non-copyable types (like std::unique_ptr), clone is not available.
@@ -386,7 +386,7 @@ namespace PrefixTree {
             result.cleaner = cleaner;
             return result;
         }
-        //=========== Метрики ====================//
+        //=========== РњРµС‚СЂРёРєРё ====================//
         bool empty() const {
             return element_count == 0;
         }
@@ -396,19 +396,19 @@ namespace PrefixTree {
         }
 
 private:
-        //=========== Вспомогательные методы ===============//
-        // const traverse - только чтение
+        //=========== Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Рµ РјРµС‚РѕРґС‹ ===============//
+        // const traverse - С‚РѕР»СЊРєРѕ С‡С‚РµРЅРёРµ
         template<typename K, typename F>
         decltype(auto) traverse(K&& key, F&& func) const {
             NodeT* current = root_holder.root.get();
-            for (auto c : std::string_view(std::forward<K>(key))) {  // Преобразуем в последовательность char
+            for (auto c : std::string_view(std::forward<K>(key))) {  // РџСЂРµРѕР±СЂР°Р·СѓРµРј РІ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ char
                 current = current->getChild(c);
                 if (!current) return std::forward<F>(func)(nullptr);
             }
             return std::forward<F>(func)(current);
         }
 
-        // non-const traverse - для модификации
+        // non-const traverse - РґР»СЏ РјРѕРґРёС„РёРєР°С†РёРё
         template<typename K, typename F>
         decltype(auto) traverse(K&& key, F&& func) {
             NodeT* current = root_holder.root.get();
@@ -419,7 +419,7 @@ private:
             return std::forward<F>(func)(current);
         }
 
-        // traverse_or_create - создает путь при необходимости
+        // traverse_or_create - СЃРѕР·РґР°РµС‚ РїСѓС‚СЊ РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё
         template<typename K, typename F>
         decltype(auto) traverse_or_create(K&& key, F&& func) {
             NodeT* current = root_holder.root.get();
@@ -434,7 +434,7 @@ private:
             }
             return std::forward<F>(func)(current);
         }
-        //рекурсивная функция для очистки мертвых узлов
+        //СЂРµРєСѓСЂСЃРёРІРЅР°СЏ С„СѓРЅРєС†РёСЏ РґР»СЏ РѕС‡РёСЃС‚РєРё РјРµСЂС‚РІС‹С… СѓР·Р»РѕРІ
         bool cleanup_impl(NodeT* node, size_t depth = 0) {
             if (!node) return true;
 
@@ -442,13 +442,13 @@ private:
                 throw std::runtime_error("Trie too deep for clean up");
             }
 
-            //сначала проходим по всем узлам
+            //СЃРЅР°С‡Р°Р»Р° РїСЂРѕС…РѕРґРёРј РїРѕ РІСЃРµРј СѓР·Р»Р°Рј
             node->forEachChild([&](char c, NodeT* child) {
                 if (cleanup_impl(child, depth + 1)) {
                     node->setChild(c, nullptr);
                 }
                 });
-            //считаем оставшихся детей
+            //СЃС‡РёС‚Р°РµРј РѕСЃС‚Р°РІС€РёС…СЃСЏ РґРµС‚РµР№
             size_t count_children = 0;
             node->forEachChild([&](char c, NodeT* child) {
                 if (child) ++count_children;
@@ -457,7 +457,7 @@ private:
             return !node->has_value && !count_children;
         }
         
-        //клонирование узлов
+        //РєР»РѕРЅРёСЂРѕРІР°РЅРёРµ СѓР·Р»РѕРІ
         std::unique_ptr<NodeT> cloneNode(const NodeT* node, size_t depth = 0) const {
             if (!node) return nullptr;
 
@@ -468,16 +468,16 @@ private:
             auto new_node = std::make_unique<NodeT>();
             new_node->has_value = node->has_value;
 
-            // Копируем значение, если оно есть
+            // РљРѕРїРёСЂСѓРµРј Р·РЅР°С‡РµРЅРёРµ, РµСЃР»Рё РѕРЅРѕ РµСЃС‚СЊ
             if (node->has_value) {
-                new_node->value = node->value;  // Копируем значение
+                new_node->value = node->value;  // РљРѕРїРёСЂСѓРµРј Р·РЅР°С‡РµРЅРёРµ
             }
 
-            // Копируем детей - теперь func принимает (char, const NodeT*)
+            // РљРѕРїРёСЂСѓРµРј РґРµС‚РµР№ - С‚РµРїРµСЂСЊ func РїСЂРёРЅРёРјР°РµС‚ (char, const NodeT*)
             node->forEachChild([&](char c, const NodeT* child) {
                 auto cloned_child = cloneNode(child, depth + 1);
                 if (cloned_child) {
-                    new_node->setChild(c, std::move(cloned_child));  // вставляем по букве
+                    new_node->setChild(c, std::move(cloned_child));  // РІСЃС‚Р°РІР»СЏРµРј РїРѕ Р±СѓРєРІРµ
                 }
                 });
 
@@ -492,15 +492,15 @@ private:
 
         RootHolder root_holder;
 
-        size_t element_count = 0; //счетчик ключей
+        size_t element_count = 0; //СЃС‡РµС‚С‡РёРє РєР»СЋС‡РµР№
         
-        [[no_unique_address]] Cleaner cleaner;  // очиститель значения - пустой для NoopCleaner
+        [[no_unique_address]] Cleaner cleaner;  // РѕС‡РёСЃС‚РёС‚РµР»СЊ Р·РЅР°С‡РµРЅРёСЏ - РїСѓСЃС‚РѕР№ РґР»СЏ NoopCleaner
 
-        //ограничитель глубины рекурсии (для клонирования)
+        //РѕРіСЂР°РЅРёС‡РёС‚РµР»СЊ РіР»СѓР±РёРЅС‹ СЂРµРєСѓСЂСЃРёРё (РґР»СЏ РєР»РѕРЅРёСЂРѕРІР°РЅРёСЏ)
         static constexpr size_t MAX_DEPTH = 10000;
     };
 
-    //-------------Aлиасы для разных вариантов типа узла с ключом типа string---//        
+    //-------------AР»РёР°СЃС‹ РґР»СЏ СЂР°Р·РЅС‹С… РІР°СЂРёР°РЅС‚РѕРІ С‚РёРїР° СѓР·Р»Р° СЃ РєР»СЋС‡РѕРј С‚РёРїР° string---//        
     template<typename V>
     using ArrayTrie = Trie<std::string, V, ArrayNode<V>>;
 
