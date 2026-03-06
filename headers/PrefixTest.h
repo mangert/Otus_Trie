@@ -168,11 +168,13 @@ private:
 			}
 		}
 		// 8. Очистка
-		std::cout << "    Clearing trie...\n";
-		trie.clear();
-
+		std::cout << "    Clearing trie...\n";		
+		trie.clear();		
 		// Проверка, что все очистилось
 		if (trie.find("dog")) {  // любое слово, которое было
+			std::cerr << "    ERROR: Trie not empty after clear!\n";
+		}
+		if(trie.size()) {  // размер
 			std::cerr << "    ERROR: Trie not empty after clear!\n";
 		}
 

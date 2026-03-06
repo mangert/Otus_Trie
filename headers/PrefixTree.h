@@ -364,6 +364,7 @@ namespace PrefixTree {
             }
             // 2. Создаем новый пустой корень
             root_holder.root = std::make_unique<NodeT>();
+            element_count = 0;
         }
         //Очистка "мертвых" узлов
         void cleanup() {            
